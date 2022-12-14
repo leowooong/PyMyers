@@ -1,4 +1,4 @@
-from myers import Myers, MyersTree
+from myers import Myers, MyersTree, MyersRealTime
 import pytest
 
 a1 = 'ABCABBA'
@@ -40,7 +40,15 @@ def test_myerstree_long_plot():
     fn = MyersTree(a2, b2, plot=True, plot_size=20)
     fn.diff()
 
+def test_myersrealtime_short_plot():
+    a = 'abcdefg'
+    b = 'abvcd'
+    fn = MyersRealTime(a, '', plot=True, plot_size=80)
+    fn.update(b)
 
 if __name__ == '__main__':
+    test_myers_short_plot()
     # test_myers_long_plot()
-    test_myerstree_long_plot()
+    # test_myerstree_short_plot()
+    # test_myerstree_long_plot()
+    # test_myersrealtime_short_plot()
