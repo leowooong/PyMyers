@@ -3,7 +3,7 @@ from debug import Debug, Coords
 from dataclasses import dataclass
 
 
-class Myers:
+class MyersBase:
     def __init__(self,
                  a: SupportsIndex,
                  b: SupportsIndex,
@@ -14,12 +14,9 @@ class Myers:
         self.a = a
         self.b = b
         self.cmp = cmp
-        self.plot = plot
-        self.animation = animation
-        self.plot_size = plot_size
         self.debug = Debug(a, b, plot=plot, animation=animation, plot_size=plot_size)
 
-    def shortest_edit(self):
+    def shortest_edit(self) -> List[List[int]]:
         n, m = len(self.a), len(self.b)
         maxd = n + m
         v = [0] * (maxd * 2 + 1)  # store x value indexed by k
@@ -45,10 +42,11 @@ class Myers:
                 if x >= n and y >= m:
                     return trace
 
-    def backtrace(self, trace):
+    def backtrace(self, forward_trace) -> List[Coords]:
         x, y = len(self.a), len(self.b)
-        for d in range(len(trace))[::-1]:
-            v = trace[d]
+        backward_trace = []
+        for d in range(len(forward_trace))[::-1]:
+            v = forward_trace[d]
             k = x - y
             # moving downward
             if k == -d or (k != d and v[k - 1] < v[k + 1]):
@@ -62,14 +60,18 @@ class Myers:
             # moving diagonally
             while x > prev_x and y > prev_y:
                 self.debug.backward([x, y], [x-1, y-1])
+                forward_trace.append([x, y])
                 x, y = x - 1, y - 1
             self.debug.backward([x, y], [prev_x, prev_y])
+            backward_trace.append([x, y])
             x, y = prev_x, prev_y
+        return [0, -1] + backward_trace[::-1]
 
     def diff(self) -> List[Coords]:
-        self.backtrace(self.shortest_edit())
+        forward_trace = self.shortest_edit()
+        backward_trace = self.backtrace(forward_trace)
         self.debug.done()
-        return self.debug.trace
+        return backward_trace
 
 
 @dataclass
@@ -110,64 +112,47 @@ class Tree:
     def __init__(self, root: TreeNode, leave_size: int):
         self.root: TreeNode = root
         self.end_node: TreeNode = root
-        self.leaves: List[TreeNode] = [None] * leave_size
-        # self.trace: List[TreeNode] = []
-        self.leaves[1] = root  # set virtual root
 
-    def append(self, node: TreeNode):
-        self.leaves[node.k] = node
+        self._leaves: List[TreeNode] = [None] * leave_size
+        self._leaves[1] = root  # set virtual root
 
-    def expand_leaves(self, d: int):
-        if len(self.leaves) < d * 2 + 1:
-            self.leaves += [None] * 2 * d
-            self.leaves[-d:] = self.leaves[-d-2*d: -2*d]
+        self._trace: List[TreeNode] = [root]
+        self._update_trace: List[TreeNode] = []
+        self._tmp_trace: List[TreeNode] = []
 
+    @property
+    def leaves(self):
+        return self._leaves
 
-class MyersTree(Myers):
-    def __init__(self,
-                 a: SupportsIndex,
-                 b: SupportsIndex,
-                 cmp: Callable = None,
-                 plot: bool = False,
-                 animation: bool = True,
-                 plot_size: int = 50):
-        super().__init__(a, b, cmp, plot, animation, plot_size)
+    @property
+    def trace(self):
+        return [n.coords for n in self._trace]
 
-    def shortest_edit(self):
-        n, m = len(self.a), len(self.b)
-        maxd = n + m
-        root = TreeNode(0, -1)  # virtual root
-        tree = Tree(root, maxd * 2 + 1)
-        for d in range(maxd + 1):  # maxd included
-            for k in range(-d, d + 1, 2):
-                # moving downward
-                if k == -d or (k != d and tree.leaves[k - 1].x < tree.leaves[k + 1].x):
-                    node = tree.leaves[k + 1].downward()
-                    tree.append(node)
-                    self.debug.forward(node.p.coords, node.coords)
-                # moving rightward
-                else:
-                    node = tree.leaves[k - 1].rightward()
-                    tree.append(node)
-                    self.debug.forward(node.p.coords, node.coords)
-                # moving diagonally
-                while node.x < n and node.y < m and self.a[node.x] == self.b[node.y]:
-                    node = tree.leaves[k].diagonal()
-                    tree.append(node)
-                    self.debug.forward(node.p.coords, node.coords)
-                # end
-                if node.x >= n and node.y >= m:
-                    tree.end_node = node
-                    return tree
+    @property
+    def update_trace(self):
+        return [n.coords for n in self._update_trace]
 
-    def backtrace(self, tree: Tree):
-        end_node = tree.end_node
-        while end_node != tree.root:
-            self.debug.backward(end_node.coords, end_node.p.coords)
-            end_node = end_node.p
+    def append(self, node: TreeNode) -> None:
+        self._leaves[node.k] = node
+
+    def expand(self, d: int) -> None:
+        if len(self._leaves) < d * 2 + 1:
+            self._leaves += [None] * 2 * d
+            self._leaves[-d:] = self._leaves[-d-2*d: -2*d]
+
+    def on_trace(self, node: TreeNode) -> bool:
+        self._tmp_trace.append(node)
+        try:
+            index = self._trace.index(node)
+            self._trace = self._trace[:index] + self._tmp_trace[::-1]
+            self._update_trace = self._tmp_trace[::-1]
+            self._tmp_trace = []
+            return True
+        except ValueError:
+            return False
 
 
-class MyersRealTime(MyersTree):
+class MyersTree(MyersBase):
     def __init__(self,
                  a: SupportsIndex,
                  b: SupportsIndex,
@@ -178,21 +163,12 @@ class MyersRealTime(MyersTree):
         super().__init__(a, b, cmp, plot, animation, plot_size)
         root = TreeNode(0, -1)  # virtual root
         self.tree = Tree(root, 3)
-        self.current_d = 0
-
-    def update(self, b) -> TreeNode:
-        self.b = self.b + b
-        self.debug = Debug(self.a, self.b, plot=self.plot, animation=self.animation, plot_size=self.plot_size)
-        self.shortest_edit()
-        # self.backtrace()
-        return self.tree.end_node
-        # self.tree.trim() # TODO
 
     def shortest_edit(self):
         n, m = len(self.a), len(self.b)
         maxd = n + m
-        for d in range(self.current_d, maxd + 1):  # maxd included
-            self.tree.expand_leaves(d)
+        for d in range(maxd + 1):  # maxd included
+            self.tree.expand(d)
             for k in range(-d, d + 1, 2):
                 # moving downward
                 if k == -d or (k != d and self.tree.leaves[k - 1].x < self.tree.leaves[k + 1].x):
@@ -210,28 +186,82 @@ class MyersRealTime(MyersTree):
                     self.tree.append(node)
                     self.debug.forward(node.p.coords, node.coords)
                 # end
-                if node.y >= m:
+                if node.x >= n and node.y >= m:
                     self.tree.end_node = node
-                    # in next update, d-loop start from d again, the dth tree.leaves will be replaced
+                    return self.tree
+
+    def backtrace(self):
+        end_node = self.tree.end_node
+        while not self.tree.on_trace(end_node):  # tree.root is on trace by default
+            self.debug.backward(end_node.coords, end_node.p.coords)
+            end_node = end_node.p
+
+    def diff(self) -> List[Coords]:
+        self.shortest_edit()
+        self.backtrace()
+        self.debug.done()
+        return self.tree.trace
+
+
+class MyersRealTime(MyersTree):
+    def __init__(self,
+                 a: SupportsIndex,
+                 b: SupportsIndex,
+                 cmp: Callable = None,
+                 plot: bool = False,
+                 animation: bool = True,
+                 plot_size: int = 50):
+        super().__init__(a, b, cmp, plot, animation, plot_size)
+        self.current_d = 0
+
+    def update(self, b: SupportsIndex) -> TreeNode:
+        self.b = self.b + b
+        self.debug.update(b)
+        self.realtime_shortest_edit()
+        self.backtrace()
+        return self.tree.update_trace
+        # self.tree.trim() # TODO
+
+    def realtime_shortest_edit(self):
+        n, m = len(self.a), len(self.b)
+        maxd = n + m
+        for d in range(self.current_d, maxd + 1):  # maxd included
+            self.tree.expand(d)
+            for k in range(-d, d + 1, 2):
+                # moving downward
+                if k == -d or (k != d and self.tree.leaves[k - 1].x < self.tree.leaves[k + 1].x):
+                    node = self.tree.leaves[k + 1].downward()
+                    self.tree.append(node)
+                    self.debug.forward(node.p.coords, node.coords)
+                # moving rightward
+                else:
+                    node = self.tree.leaves[k - 1].rightward()
+                    self.tree.append(node)
+                    self.debug.forward(node.p.coords, node.coords)
+                # moving diagonally
+                while node.x < n and node.y < m and self.a[node.x] == self.b[node.y]:
+                    node = self.tree.leaves[k].diagonal()
+                    self.tree.append(node)
+                    self.debug.forward(node.p.coords, node.coords)
+                # end
+                if node.y >= m:  # TODO: break too early, there may be a better path in dth-loop
+                    self.tree.end_node = node
+                    # in next update, d-loop start from d again, the dth tree.leaves will be updated
                     # tree is thus kept tidy
                     self.current_d = d
                     return
 
-    def backtrace(self):
-        end_node = self.tree.end_node
-        while end_node != self.tree.root:
-            self.debug.backward(end_node.coords, end_node.p.coords)
-            end_node = end_node.p
-
 
 if __name__ == '__main__':
-    a = 'abcdefgqbcdefg'
+    a = 'abcdefgqbcdefglkjhiofawsjnfdlkdlifjgo'
     b1 = 'abvcd'
-    b2 = 'saqbckle'
-    b3 = 'efglk'
+    b2 = 'efognngqbb'
+    b3 = 'cdlgkn'
+    b4 = 'lsjdfoasidfajmljsjdfl'
 
-    fn = MyersRealTime(a, '', plot=True, plot_size=30)
-    fn.update(b1)
-    fn.update(b2)
-    fn.update(b3)
+    fn = MyersRealTime(a, '', plot=True, animation=False, plot_size=50)
+    print(fn.update(b1))
+    print(fn.update(b2))
+    print(fn.update(b3))
+    print(fn.update(b4))
     fn.debug.done()

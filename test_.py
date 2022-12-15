@@ -1,4 +1,4 @@
-from myers import Myers, MyersTree, MyersRealTime
+from myers import MyersBase, MyersTree, MyersRealTime
 import pytest
 
 a1 = 'ABCABBA'
@@ -11,7 +11,7 @@ b2 = '风清扬是一位金庸小说中的人物，他英俊、纯洁、忠诚�
 
 # noplot
 def test_myers_short_noplot():
-    fn = Myers(a1, b1, plot=False)
+    fn = MyersBase(a1, b1, plot=False)
     fn.diff()
 
 
@@ -22,13 +22,13 @@ def test_myerstree_short_noplot():
 
 # plot
 def test_myers_short_plot():
-    fn = MyersTree(a1, b1, plot=True, plot_size=50)
-    fn.diff()
+    fn = MyersBase(a1, b1, plot=True, plot_size=50)
+    print(fn.diff())
 
 
 def test_myers_long_plot():
-    fn = MyersTree(a2, b2, plot=True, plot_size=20)
-    fn.diff()
+    fn = MyersTree(a2, b2, plot=True, animation=False, plot_size=20)
+    print(fn.diff())
 
 
 def test_myerstree_short_plot():
@@ -37,18 +37,16 @@ def test_myerstree_short_plot():
 
 
 def test_myerstree_long_plot():
-    fn = MyersTree(a2, b2, plot=True, plot_size=20)
-    fn.diff()
+    fn = MyersTree(a2, b2, plot=True, animation=False, plot_size=20)
+    print(fn.diff())
 
 def test_myersrealtime_short_plot():
-    a = 'abcdefg'
-    b = 'abvcd'
-    fn = MyersRealTime(a, '', plot=True, plot_size=80)
-    fn.update(b)
+    fn = MyersRealTime(a1, b1, plot=True, plot_size=80)
+    print(fn.diff())
 
 if __name__ == '__main__':
-    test_myers_short_plot()
+    # test_myers_short_plot()
     # test_myers_long_plot()
     # test_myerstree_short_plot()
     # test_myerstree_long_plot()
-    # test_myersrealtime_short_plot()
+    test_myersrealtime_short_plot()
