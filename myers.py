@@ -2,6 +2,10 @@ from typing import List, Callable, Optional, SupportsIndex, Union, Tuple
 from debug import Debug, Coords
 from dataclasses import dataclass
 
+Matches = List[Coords]  # list of (a_coord, b_coord)
+Deletes = List[int]  # list of a_coord
+Inserts = List[int]  # list of b_coord
+
 
 class MyersBase:
     def __init__(self,
@@ -9,8 +13,18 @@ class MyersBase:
                  b: SupportsIndex,
                  cmp: Callable = None,
                  plot: bool = False,
-                 animation: bool = True,
+                 animation: bool = False,
                  plot_size: int = 50):
+        """myerse base
+
+        Args:
+            a (SupportsIndex): a reference str/list/...
+            b (SupportsIndex): str/list/... that is expected to be compared with a
+            cmp (Callable, optional): cmp fn which should resolve a==b. Defaults to None.
+            plot (bool, optional): whether plot debug figure. Defaults to False.
+            animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
+            plot_size (int, optional): debug figure size. Defaults to 50.
+        """
         self.a = a
         self.b = b
         self.cmp = cmp
@@ -65,13 +79,40 @@ class MyersBase:
             self.debug.backward([x, y], [prev_x, prev_y])
             backward_trace.append([x, y])
             x, y = prev_x, prev_y
-        return [0, -1] + backward_trace[::-1]
+        return [0, -1] + backward_trace[::-1]   # add virtual root
 
-    def diff(self) -> List[Coords]:
+    @staticmethod
+    def resolve_trace(trace: List[Coords]) -> Tuple[Matches, Deletes, Inserts]:
+        """resolve trace to 3 lists of int(a_coord/b_coord)
+
+        Args:
+            trace (List[Coords]): trace of a list of Coords, the return value of diff
+
+        Returns:
+            Tuple[Matches, Deletes, Inserts]: matche indexes of (a, b), delete indexes of a, insert indexes of b
+        """
+        matches = []
+        deletes = []
+        inserts = []
+        for i, c in enumerate(trace[:-1]):
+            if c[0]+1 == trace[i+1][0] and c[1]+1 == trace[i + 1][1]:
+                matches.append(c)
+            elif c[0]+1 == trace[i+1][0]:
+                deletes.append(c[0])
+            else:
+                inserts.append(c[1])
+        return matches, deletes, inserts[1:]  # remove virtual root
+
+    def diff(self) -> Tuple[Matches, Deletes, Inserts]:
+        """calculate diff between a, b
+
+        Returns:
+            Tuple[Matches, Deletes, Inserts]: matche indexes of (a, b), delete indexes of a, insert indexes of b
+        """
         forward_trace = self.shortest_edit()
         backward_trace = self.backtrace(forward_trace)
         self.debug.done()
-        return backward_trace
+        return self.resolve_trace(backward_trace)
 
 
 @dataclass
@@ -125,11 +166,11 @@ class Tree:
         return self._leaves
 
     @property
-    def trace(self):
+    def trace(self) -> List[Coords]:
         return [n.coords for n in self._trace]
 
     @property
-    def update_trace(self):
+    def update_trace(self) -> List[Coords]:
         return [n.coords for n in self._update_trace]
 
     def append(self, node: TreeNode) -> None:
@@ -158,8 +199,18 @@ class MyersTree(MyersBase):
                  b: SupportsIndex,
                  cmp: Callable = None,
                  plot: bool = False,
-                 animation: bool = True,
+                 animation: bool = False,
                  plot_size: int = 50):
+        """myerse using tree data structure support, less memory consumption, better readerable
+
+        Args:
+            a (SupportsIndex): a reference str/list/...
+            b (SupportsIndex): str/list/... that is expected to be compared with a
+            cmp (Callable, optional): cmp fn which should resolve a==b. Defaults to None.
+            plot (bool, optional): whether plot debug figure. Defaults to False.
+            animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
+            plot_size (int, optional): debug figure size. Defaults to 50.
+        """
         super().__init__(a, b, cmp, plot, animation, plot_size)
         root = TreeNode(0, -1)  # virtual root
         self.tree = Tree(root, 3)
@@ -192,15 +243,20 @@ class MyersTree(MyersBase):
 
     def backtrace(self):
         end_node = self.tree.end_node
-        while not self.tree.on_trace(end_node):  # tree.root is on trace by default
+        while not self.tree.on_trace(end_node):  # tree.root is on trace
             self.debug.backward(end_node.coords, end_node.p.coords)
             end_node = end_node.p
 
-    def diff(self) -> List[Coords]:
+    def diff(self) -> Tuple[Matches, Deletes, Inserts]:
+        """calculate diff between a, b
+
+        Returns:
+            Tuple[Matches, Deletes, Inserts]: matche indexes of (a, b), delete indexes of a, insert indexes of b
+        """
         self.shortest_edit()
         self.backtrace()
         self.debug.done()
-        return self.tree.trace
+        return self.resolve_trace(self.tree.trace)
 
 
 class MyersRealTime(MyersTree):
@@ -209,17 +265,35 @@ class MyersRealTime(MyersTree):
                  b: SupportsIndex,
                  cmp: Callable = None,
                  plot: bool = False,
-                 animation: bool = True,
+                 animation: bool = False,
                  plot_size: int = 50):
+        """myerse with realtime support
+
+        Args:
+            a (SupportsIndex): a reference str/list/...
+            b (SupportsIndex): str/list/... that is expected to be compared with a, b can be empty.
+            cmp (Callable, optional): cmp fn which should resolve a==b. Defaults to None.
+            plot (bool, optional): whether plot debug figure. Defaults to False.
+            animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
+            plot_size (int, optional): debug figure size. Defaults to 50.
+        """
         super().__init__(a, b, cmp, plot, animation, plot_size)
         self.current_d = 0
 
-    def update(self, b: SupportsIndex) -> TreeNode:
+    def update(self, b: SupportsIndex) -> Tuple[Matches, Deletes, Inserts]:
+        """append new b and get new diffs
+
+        Args:
+            b (SupportsIndex): b to be appended to current b
+
+        Returns:
+            Tuple[Matches, Deletes, Inserts]: matche indexes of (a, b), delete indexes of a, insert indexes of b
+        """
         self.b = self.b + b
         self.debug.update(b)
         self.realtime_shortest_edit()
         self.backtrace()
-        return self.tree.update_trace
+        return self.resolve_trace(self.tree.update_trace)
         # self.tree.trim() # TODO
 
     def realtime_shortest_edit(self):
