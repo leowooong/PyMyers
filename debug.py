@@ -1,5 +1,9 @@
 import turtle
-from typing import List, Callable, SupportsIndex, Tuple
+from typing import List, Callable, SupportsIndex, Tuple, Union
+import pickle
+from pathlib import Path
+import shutil
+import datetime
 
 Coords = Tuple[int, int]
 
@@ -10,12 +14,28 @@ class Debug:
                  b: SupportsIndex,
                  plot: bool = True,
                  animation: bool = True,
-                 plot_size: int = 50):
+                 plot_size: int = 50,
+                 log_path: Union[str, Path] = '',
+                 max_logs: int = 5):
         self.a = a
         self.b = b
         self.plot = plot
         self.animation = animation
         self.plot_size = plot_size
+
+        # logging
+        now = datetime.datetime.now().strftime('%Y-%m-%d-%H:%M:%S')
+        if log_path:
+            self.log_path = Path(log_path) / 'log-myers-{}'.format(now)
+            self.log_path.mkdir(parents=True, exist_ok=True)
+            sub_log_paths = sorted(Path(log_path).iterdir(), reverse=True)
+            for p in sub_log_paths[max_logs:]:
+                shutil.rmtree(p)
+        else:
+            self.log_path = ''
+        self._write(a, 'a0.pickle')
+        self._write(b, 'b0.pickle')
+        self._update_num = 1
 
         self.n = len(a)
         self.m = len(b)
@@ -35,6 +55,8 @@ class Debug:
             self._draw_line(start, end)
 
     def update(self, b):
+        self._write(b, 'b{}.pickle'.format(self._update_num))
+        self._update_num += 1
         self.b = self.b + b
         self.prev_m = self.m
         self.m = len(self.b)
@@ -46,6 +68,37 @@ class Debug:
     def done(self):
         if self.plot:
             turtle.done()
+
+    def _write(self, data,  filename):
+        if self.log_path:
+            with open(self.log_path / filename, 'wb') as f:
+                pickle.dump(data, f)
+
+    @staticmethod
+    def read(folder: Union[str, Path]) -> List[SupportsIndex]:
+        """read from myers log folder
+
+        Args:
+            folder (_type_): foler with head log-myers-
+
+        Returns:
+            List[SupportsIndex]: list in order [a0, b0, b1, b2 ...]
+        """
+        tmp = []
+        # reading a
+        with open(Path(folder) / 'a0.pickle', 'rb') as f:
+            tmp.append(pickle.load(f))
+        # reading b
+        i = 0
+        while True:
+            b_file = Path(folder) / 'b{}.pickle'.format(i)
+            if b_file.exists():
+                with open(b_file, 'rb') as f:
+                    tmp.append(pickle.load(f))
+                i += 1
+            else:
+                break
+        return tmp
 
     def _update_background(self):
         # set cavas size coordinates loaction/direction

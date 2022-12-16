@@ -1,10 +1,12 @@
 from typing import List, Callable, Optional, SupportsIndex, Union, Tuple
 from debug import Debug, Coords
 from dataclasses import dataclass
+from collections import namedtuple
 
 Matches = List[Coords]  # list of (a_coord, b_coord)
 Deletes = List[int]  # list of a_coord
 Inserts = List[int]  # list of b_coord
+Diff = namedtuple('Diff', ['matches', 'deletes', 'inserts'])
 
 
 class MyersBase:
@@ -14,7 +16,8 @@ class MyersBase:
                  cmp: Callable = None,
                  plot: bool = False,
                  animation: bool = False,
-                 plot_size: int = 50):
+                 plot_size: int = 50,
+                 log_path: str = ''):
         """myerse base
 
         Args:
@@ -24,11 +27,12 @@ class MyersBase:
             plot (bool, optional): whether plot debug figure. Defaults to False.
             animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
             plot_size (int, optional): debug figure size. Defaults to 50.
+            log_path (str, optional): log_path to save a, b. Defaults to '', no data will be saved.
         """
         self.a = a
         self.b = b
         self.cmp = cmp
-        self.debug = Debug(a, b, plot=plot, animation=animation, plot_size=plot_size)
+        self.debug = Debug(a, b, plot=plot, animation=animation, plot_size=plot_size, log_path=log_path)
 
     def shortest_edit(self) -> List[List[int]]:
         n, m = len(self.a), len(self.b)
@@ -82,18 +86,18 @@ class MyersBase:
         return [0, -1] + backward_trace[::-1]   # add virtual root
 
     @staticmethod
-    def resolve_trace(trace: List[Coords]) -> Tuple[Matches, Deletes, Inserts]:
+    def resolve_trace(trace: List[Coords]) -> Diff:
         """resolve trace to 3 lists of int(a_coord/b_coord)
 
         Args:
             trace (List[Coords]): trace of a list of Coords, the return value of diff
 
         Returns:
-            Tuple[Matches, Deletes, Inserts]: matche indexes of (a, b), delete indexes of a, insert indexes of b
+            Diff: namedtuple('Diff', ['matches', 'deletes', 'inserts']), corresponding to indexes of (a, b), indexes of a, indexes of b respectively
         """
-        matches = []
-        deletes = []
-        inserts = []
+        matches: Matches = []
+        deletes: Deletes = []
+        inserts: Inserts = []
         for i, c in enumerate(trace[:-1]):
             if c[0]+1 == trace[i+1][0] and c[1]+1 == trace[i + 1][1]:
                 matches.append(c)
@@ -101,13 +105,15 @@ class MyersBase:
                 deletes.append(c[0])
             else:
                 inserts.append(c[1])
-        return matches, deletes, inserts[1:]  # remove virtual root
+        if inserts[0] == -1:
+            inserts = inserts[1:]  # remove virtual root
+        return Diff(matches, deletes, inserts)
 
-    def diff(self) -> Tuple[Matches, Deletes, Inserts]:
+    def diff(self) -> Diff:
         """calculate diff between a, b
 
         Returns:
-            Tuple[Matches, Deletes, Inserts]: matche indexes of (a, b), delete indexes of a, insert indexes of b
+            Diff: namedtuple('Diff', ['matches', 'deletes', 'inserts']), corresponding to indexes of (a, b), indexes of a, indexes of b respectively
         """
         forward_trace = self.shortest_edit()
         backward_trace = self.backtrace(forward_trace)
@@ -158,7 +164,7 @@ class Tree:
         self._leaves[1] = root  # set virtual root
 
         self._trace: List[TreeNode] = [root]
-        self._update_trace: List[TreeNode] = []
+        self._updated_trace: List[TreeNode] = []
         self._tmp_trace: List[TreeNode] = []
 
     @property
@@ -170,8 +176,8 @@ class Tree:
         return [n.coords for n in self._trace]
 
     @property
-    def update_trace(self) -> List[Coords]:
-        return [n.coords for n in self._update_trace]
+    def updated_trace(self) -> List[Coords]:
+        return [n.coords for n in self._updated_trace]
 
     def append(self, node: TreeNode) -> None:
         self._leaves[node.k] = node
@@ -184,9 +190,9 @@ class Tree:
     def on_trace(self, node: TreeNode) -> bool:
         self._tmp_trace.append(node)
         try:
-            index = self._trace.index(node)
+            index = self._trace.index(node)  # TODO: O(n) time time complexity
             self._trace = self._trace[:index] + self._tmp_trace[::-1]
-            self._update_trace = self._tmp_trace[::-1]
+            self._updated_trace = self._tmp_trace[::-1]
             self._tmp_trace = []
             return True
         except ValueError:
@@ -200,7 +206,8 @@ class MyersTree(MyersBase):
                  cmp: Callable = None,
                  plot: bool = False,
                  animation: bool = False,
-                 plot_size: int = 50):
+                 plot_size: int = 50,
+                 log_path: str = ''):
         """myerse using tree data structure support, less memory consumption, better readerable
 
         Args:
@@ -210,8 +217,9 @@ class MyersTree(MyersBase):
             plot (bool, optional): whether plot debug figure. Defaults to False.
             animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
             plot_size (int, optional): debug figure size. Defaults to 50.
+            log_path (str, optional): log_path to save a, b. Defaults to '', no data will be saved.
         """
-        super().__init__(a, b, cmp, plot, animation, plot_size)
+        super().__init__(a, b, cmp, plot, animation, plot_size, log_path)
         root = TreeNode(0, -1)  # virtual root
         self.tree = Tree(root, 3)
 
@@ -247,11 +255,11 @@ class MyersTree(MyersBase):
             self.debug.backward(end_node.coords, end_node.p.coords)
             end_node = end_node.p
 
-    def diff(self) -> Tuple[Matches, Deletes, Inserts]:
+    def diff(self) -> Diff:
         """calculate diff between a, b
 
         Returns:
-            Tuple[Matches, Deletes, Inserts]: matche indexes of (a, b), delete indexes of a, insert indexes of b
+            Diff: namedtuple('Diff', ['matches', 'deletes', 'inserts']), corresponding to indexes of (a, b), indexes of a, indexes of b respectively
         """
         self.shortest_edit()
         self.backtrace()
@@ -266,7 +274,8 @@ class MyersRealTime(MyersTree):
                  cmp: Callable = None,
                  plot: bool = False,
                  animation: bool = False,
-                 plot_size: int = 50):
+                 plot_size: int = 50,
+                 log_path: str = ''):
         """myerse with realtime support
 
         Args:
@@ -276,24 +285,25 @@ class MyersRealTime(MyersTree):
             plot (bool, optional): whether plot debug figure. Defaults to False.
             animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
             plot_size (int, optional): debug figure size. Defaults to 50.
+            log_path (str, optional): log_path to save a, b. Defaults to '', no data will be saved.
         """
-        super().__init__(a, b, cmp, plot, animation, plot_size)
+        super().__init__(a, b, cmp, plot, animation, plot_size, log_path)
         self.current_d = 0
 
-    def update(self, b: SupportsIndex) -> Tuple[Matches, Deletes, Inserts]:
+    def update(self, b: SupportsIndex) -> Diff:
         """append new b and get new diffs
 
         Args:
             b (SupportsIndex): b to be appended to current b
 
         Returns:
-            Tuple[Matches, Deletes, Inserts]: matche indexes of (a, b), delete indexes of a, insert indexes of b
+            Diff: namedtuple('Diff', ['matches', 'deletes', 'inserts']), corresponding to indexes of (a, b), indexes of a, indexes of b respectively
         """
         self.b = self.b + b
         self.debug.update(b)
         self.realtime_shortest_edit()
         self.backtrace()
-        return self.resolve_trace(self.tree.update_trace)
+        return self.resolve_trace(self.tree.updated_trace)
         # self.tree.trim() # TODO
 
     def realtime_shortest_edit(self):
@@ -333,7 +343,7 @@ if __name__ == '__main__':
     b3 = 'cdlgkn'
     b4 = 'lsjdfoasidfajmljsjdfl'
 
-    fn = MyersRealTime(a, '', plot=True, animation=False, plot_size=50)
+    fn = MyersRealTime(a, '', plot=True, animation=False, plot_size=50, log_path='./log')
     print(fn.update(b1))
     print(fn.update(b2))
     print(fn.update(b3))
