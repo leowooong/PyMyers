@@ -60,7 +60,7 @@ class MyersBase:
                 if x >= n and y >= m:
                     return trace
 
-    def backtrace(self, forward_trace) -> List[Coords]:
+    def backtrace(self, forward_trace: List[List[int]]) -> List[Coords]:
         x, y = len(self.a), len(self.b)
         backward_trace = []
         for d in range(len(forward_trace))[::-1]:
@@ -78,12 +78,12 @@ class MyersBase:
             # moving diagonally
             while x > prev_x and y > prev_y:
                 self.debug.backward([x, y], [x-1, y-1])
-                forward_trace.append([x, y])
+                backward_trace.append([x, y])
                 x, y = x - 1, y - 1
             self.debug.backward([x, y], [prev_x, prev_y])
             backward_trace.append([x, y])
             x, y = prev_x, prev_y
-        return [0, -1] + backward_trace[::-1]   # add virtual root
+        return [[0, -1]] + backward_trace[::-1]   # add virtual root
 
     @staticmethod
     def resolve_trace(trace: List[Coords]) -> Diff:
