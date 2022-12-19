@@ -31,7 +31,7 @@ class MyersBase:
         """
         self.a = a
         self.b = b
-        self.cmp = cmp
+        self.cmp = cmp if cmp else lambda a, b: a == b
         self.debug = Debug(a, b, plot=plot, animation=animation, plot_size=plot_size, log_path=log_path)
 
     def shortest_edit(self) -> List[List[int]]:
@@ -52,7 +52,7 @@ class MyersBase:
                     self.debug.forward([x-1, x-k], [x, x-k])
                 y = x - k
                 # moving diagonally
-                while x < n and y < m and self.a[x] == self.b[y]:
+                while x < n and y < m and self.cmp(self.a[x], self.b[y]):
                     x, y = x + 1, y + 1
                     self.debug.forward([x-1, y-1], [x, y])
                 v[k] = x
@@ -240,7 +240,7 @@ class MyersTree(MyersBase):
                     self.tree.append(node)
                     self.debug.forward(node.p.coords, node.coords)
                 # moving diagonally
-                while node.x < n and node.y < m and self.a[node.x] == self.b[node.y]:
+                while node.x < n and node.y < m and self.cmp(self.a[node.x], self.b[node.y]):
                     node = self.tree.leaves[k].diagonal()
                     self.tree.append(node)
                     self.debug.forward(node.p.coords, node.coords)
@@ -323,7 +323,7 @@ class MyersRealTime(MyersTree):
                     self.tree.append(node)
                     self.debug.forward(node.p.coords, node.coords)
                 # moving diagonally
-                while node.x < n and node.y < m and self.a[node.x] == self.b[node.y]:
+                while node.x < n and node.y < m and self.cmp(self.a[node.x], self.b[node.y]):
                     node = self.tree.leaves[k].diagonal()
                     self.tree.append(node)
                     self.debug.forward(node.p.coords, node.coords)
