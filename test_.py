@@ -42,11 +42,15 @@ def test_myerstree_long_plot():
 
 def test_myersrealtime_short_plot():
     fn = MyersRealTime(a1, b1, plot=True, plot_size=80)
-    print(fn.diff())
+    matches, deletes, inserts = fn.diff()
+    print(matches, [(a1[c[0]], b1[c[1]]) for c in matches])
+    print(deletes, [a1[c] for c in deletes])
+    print(inserts, [b1[c] for c in inserts])
 
 if __name__ == '__main__':
+    # test_myers_short_noplot()
     # test_myers_short_plot()
     # test_myers_long_plot()
     # test_myerstree_short_plot()
-    # test_myerstree_long_plot()
-    test_myersrealtime_short_plot()
+    test_myerstree_long_plot()
+    # test_myersrealtime_short_plot()

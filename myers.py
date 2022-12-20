@@ -156,15 +156,15 @@ class TreeNode:
 
 
 class Tree:
-    def __init__(self, root: TreeNode, leave_size: int):
-        self.root: TreeNode = root
-        self.end_node: TreeNode = root
+    def __init__(self, leave_size: int = 3):
+        self.root: TreeNode = TreeNode(0, -1)  # virtual root
+        self.end_node: TreeNode = self.root
 
         self._leaves: List[TreeNode] = [None] * leave_size
-        self._leaves[1] = root  # set virtual root
+        self._leaves[1] = self.root  # set virtual root
 
-        self._trace: List[TreeNode] = [root]
-        self._updated_trace: List[TreeNode] = []
+        self._trace: List[TreeNode] = [self.root]
+        self._latest_trace: List[TreeNode] = []
         self._tmp_trace: List[TreeNode] = []
 
     @property
@@ -176,8 +176,8 @@ class Tree:
         return [n.coords for n in self._trace]
 
     @property
-    def updated_trace(self) -> List[Coords]:
-        return [n.coords for n in self._updated_trace]
+    def latest_trace(self) -> List[Coords]:
+        return [n.coords for n in self._latest_trace]
 
     def append(self, node: TreeNode) -> None:
         self._leaves[node.k] = node
@@ -192,7 +192,7 @@ class Tree:
         try:
             index = self._trace.index(node)  # TODO: O(n) time time complexity
             self._trace = self._trace[:index] + self._tmp_trace[::-1]
-            self._updated_trace = self._tmp_trace[::-1]
+            self._latest_trace = self._tmp_trace[::-1]
             self._tmp_trace = []
             return True
         except ValueError:
@@ -220,8 +220,7 @@ class MyersTree(MyersBase):
             log_path (str, optional): log_path to save a, b. Defaults to '', no data will be saved.
         """
         super().__init__(a, b, cmp, plot, animation, plot_size, log_path)
-        root = TreeNode(0, -1)  # virtual root
-        self.tree = Tree(root, 3)
+        self.tree = Tree()
 
     def shortest_edit(self):
         n, m = len(self.a), len(self.b)
@@ -303,7 +302,7 @@ class MyersRealTime(MyersTree):
         self.debug.update(b)
         self.realtime_shortest_edit()
         self.backtrace()
-        return self.resolve_trace(self.tree.updated_trace)
+        return self.resolve_trace(self.tree.latest_trace)
         # self.tree.trim() # TODO
 
     def realtime_shortest_edit(self):
