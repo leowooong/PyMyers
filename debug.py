@@ -1,9 +1,9 @@
-import turtle
-from typing import List, Callable, Tuple, Union, Sequence
-import pickle
-from pathlib import Path
-import shutil
 import datetime
+import pickle
+import shutil
+import turtle
+from pathlib import Path
+from typing import List, Sequence, Tuple, Union
 
 Coords = Tuple[int, int]
 

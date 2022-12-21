@@ -1,7 +1,8 @@
-from typing import List, Callable, Optional, Sequence, Any
-from debug import Debug, Coords
-from dataclasses import dataclass
 from collections import namedtuple
+from dataclasses import dataclass
+from typing import Any, Callable, List, Optional, Sequence
+
+from debug import Coords, Debug
 
 Matches = List[Coords]  # list of (a_coord, b_coord)
 Deletes = List[int]  # list of a_coord
