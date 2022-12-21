@@ -99,19 +99,28 @@ def test_case6():
 
 
 def test_case7():
-    a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    a = "0123456789"
     b0 = ""
     b1 = "0"
     b2 = "34"
     b3 = "687"
     b4 = "890"
     b = [b0, b1, b2, b3, b4]
-    cmp = lambda a, b: a == int(b)
 
-    myers = MyersRealTime(a, b0, cmp=cmp)
+    myers = MyersRealTime(a, b[0])
+    for bi in b[1:]:
+        print(myers.update(bi))
+
+
+def test_case8():
+    from pymyers import Debug
+    log_folder = "tests/log-myers-2022-12-21-18:19:11"
+    a, *b = Debug.read(log_folder)
+
+    myers = MyersRealTime(a, b[0])
     for bi in b[1:]:
         print(myers.update(bi))
 
 
 if __name__ == "__main__":
-    test_case7()
+    test_case8()
