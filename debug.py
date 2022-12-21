@@ -1,5 +1,5 @@
 import turtle
-from typing import List, Callable, SupportsIndex, Tuple, Union
+from typing import List, Callable, Tuple, Union, Sequence
 import pickle
 from pathlib import Path
 import shutil
@@ -10,8 +10,8 @@ Coords = Tuple[int, int]
 
 class Debug:
     def __init__(self,
-                 a: SupportsIndex,
-                 b: SupportsIndex,
+                 a: Sequence,
+                 b: Sequence,
                  plot: bool = True,
                  animation: bool = True,
                  plot_size: int = 50,
@@ -32,7 +32,7 @@ class Debug:
             for p in sub_log_paths[max_logs:]:
                 shutil.rmtree(p)
         else:
-            self.log_path = ''
+            self.log_path = ''  # type: ignore [assignment]
         self._write(a, 'a0.pickle')
         self._write(b, 'b0.pickle')
         self._update_num = 1
@@ -75,14 +75,14 @@ class Debug:
                 pickle.dump(data, f)
 
     @staticmethod
-    def read(folder: Union[str, Path]) -> List[SupportsIndex]:
+    def read(folder: Union[str, Path]) -> List[Sequence]:
         """read from myers log folder
 
         Args:
             folder (_type_): foler with head log-myers-
 
         Returns:
-            List[SupportsIndex]: list in order [a0, b0, b1, b2 ...]
+            List[Sequence]: list in order [a0, b0, b1, b2 ...]
         """
         tmp = []
         # reading a

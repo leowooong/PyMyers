@@ -1,4 +1,4 @@
-from typing import List, Callable, Optional, SupportsIndex, Union, Tuple
+from typing import List, Callable, Optional, Sequence, Any
 from debug import Debug, Coords
 from dataclasses import dataclass
 from collections import namedtuple
@@ -11,9 +11,9 @@ Diff = namedtuple('Diff', ['matches', 'deletes', 'inserts'])
 
 class MyersBase:
     def __init__(self,
-                 a: SupportsIndex,
-                 b: SupportsIndex,
-                 cmp: Callable = None,
+                 a: Sequence,
+                 b: Sequence,
+                 cmp: Optional[Callable[[Any, Any], bool]] = None,
                  plot: bool = False,
                  animation: bool = False,
                  plot_size: int = 50,
@@ -21,9 +21,9 @@ class MyersBase:
         """myerse base
 
         Args:
-            a (SupportsIndex): a reference str/list/...
-            b (SupportsIndex): str/list/... that is expected to be compared with a
-            cmp (Callable, optional): cmp fn which should resolve a==b. Defaults to None.
+            a (Sequence): a reference str/list/...
+            b (Sequence): str/list/... that is expected to be compared with a
+            cmp (Optional[Callable[[Any, Any], bool]]): cmp fn which should resolve a==b. Defaults to None.
             plot (bool, optional): whether plot debug figure. Defaults to False.
             animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
             plot_size (int, optional): debug figure size. Defaults to 50.
@@ -34,7 +34,7 @@ class MyersBase:
         self.cmp = cmp if cmp else lambda a, b: a == b
         self.debug = Debug(a, b, plot=plot, animation=animation, plot_size=plot_size, log_path=log_path)
 
-    def shortest_edit(self) -> List[List[int]]:
+    def shortest_edit(self) -> List[List[int]]:  # type: ignore [return]
         n, m = len(self.a), len(self.b)
         maxd = n + m
         v = [0] * (maxd * 2 + 1)  # store x value indexed by k
@@ -45,16 +45,16 @@ class MyersBase:
                 # moving downward
                 if k == -d or (k != d and v[k - 1] < v[k + 1]):
                     x = v[k + 1]
-                    self.debug.forward([x, x-k-1], [x, x-k])
+                    self.debug.forward((x, x-k-1), (x, x-k))
                 # moving rightward
                 else:
                     x = v[k - 1] + 1
-                    self.debug.forward([x-1, x-k], [x, x-k])
+                    self.debug.forward((x-1, x-k), (x, x-k))
                 y = x - k
                 # moving diagonally
                 while x < n and y < m and self.cmp(self.a[x], self.b[y]):
                     x, y = x + 1, y + 1
-                    self.debug.forward([x-1, y-1], [x, y])
+                    self.debug.forward((x-1, y-1), (x, y))
                 v[k] = x
                 # end
                 if x >= n and y >= m:
@@ -77,13 +77,13 @@ class MyersBase:
 
             # moving diagonally
             while x > prev_x and y > prev_y:
-                self.debug.backward([x, y], [x-1, y-1])
-                backward_trace.append([x, y])
+                self.debug.backward((x, y), (x-1, y-1))
+                backward_trace.append((x, y))
                 x, y = x - 1, y - 1
-            self.debug.backward([x, y], [prev_x, prev_y])
-            backward_trace.append([x, y])
+            self.debug.backward((x, y), (prev_x, prev_y))
+            backward_trace.append((x, y))
             x, y = prev_x, prev_y
-        return [[0, -1]] + backward_trace[::-1]   # add virtual root
+        return [(0, -1)] + backward_trace[::-1]   # add virtual root
 
     @staticmethod
     def resolve_trace(trace: List[Coords]) -> Diff:
@@ -127,12 +127,12 @@ class TreeNode:
     y: int
 
     @property
-    def k(self):
+    def k(self) -> int:
         return self.x - self.y
 
     @property
-    def coords(self):
-        return [self.x, self.y]
+    def coords(self) -> Coords:
+        return (self.x, self.y)
 
     right_ch: Optional['TreeNode'] = None  # rightward child
     down_ch: Optional['TreeNode'] = None  # downward child
@@ -160,7 +160,7 @@ class Tree:
         self.root: TreeNode = TreeNode(0, -1)  # virtual root
         self.end_node: TreeNode = self.root
 
-        self._leaves: List[TreeNode] = [None] * leave_size
+        self._leaves: List[Optional[TreeNode]] = [None] * leave_size
         self._leaves[1] = self.root  # set virtual root
 
         self._trace: List[TreeNode] = [self.root]
@@ -201,9 +201,9 @@ class Tree:
 
 class MyersTree(MyersBase):
     def __init__(self,
-                 a: SupportsIndex,
-                 b: SupportsIndex,
-                 cmp: Callable = None,
+                 a: Sequence,
+                 b: Sequence,
+                 cmp: Optional[Callable[[Any, Any], bool]] = None,
                  plot: bool = False,
                  animation: bool = False,
                  plot_size: int = 50,
@@ -211,9 +211,9 @@ class MyersTree(MyersBase):
         """myerse using tree data structure support, less memory consumption, better readerable
 
         Args:
-            a (SupportsIndex): a reference str/list/...
-            b (SupportsIndex): str/list/... that is expected to be compared with a
-            cmp (Callable, optional): cmp fn which should resolve a==b. Defaults to None.
+            a (Sequence): a reference str/list/...
+            b (Sequence): str/list/... that is expected to be compared with a
+            cmp (Optional[Callable[[Any, Any], bool]]): cmp fn which should resolve a==b. Defaults to None.
             plot (bool, optional): whether plot debug figure. Defaults to False.
             animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
             plot_size (int, optional): debug figure size. Defaults to 50.
@@ -246,7 +246,6 @@ class MyersTree(MyersBase):
                 # end
                 if node.x >= n and node.y >= m:
                     self.tree.end_node = node
-                    return self.tree
 
     def backtrace(self):
         end_node = self.tree.end_node
@@ -268,9 +267,9 @@ class MyersTree(MyersBase):
 
 class MyersRealTime(MyersTree):
     def __init__(self,
-                 a: SupportsIndex,
-                 b: SupportsIndex,
-                 cmp: Callable = None,
+                 a: Sequence,
+                 b: Sequence,
+                 cmp: Optional[Callable[[Any, Any], bool]] = None,
                  plot: bool = False,
                  animation: bool = False,
                  plot_size: int = 50,
@@ -278,9 +277,9 @@ class MyersRealTime(MyersTree):
         """myerse with realtime support
 
         Args:
-            a (SupportsIndex): a reference str/list/...
-            b (SupportsIndex): str/list/... that is expected to be compared with a, b can be empty.
-            cmp (Callable, optional): cmp fn which should resolve a==b. Defaults to None.
+            a (Sequence): a reference str/list/...
+            b (Sequence): str/list/... that is expected to be compared with a, b can be empty.
+            cmp (Optional[Callable[[Any, Any], bool]]): cmp fn which should resolve a==b. Defaults to None.
             plot (bool, optional): whether plot debug figure. Defaults to False.
             animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
             plot_size (int, optional): debug figure size. Defaults to 50.
@@ -289,16 +288,16 @@ class MyersRealTime(MyersTree):
         super().__init__(a, b, cmp, plot, animation, plot_size, log_path)
         self.current_d = 0
 
-    def update(self, b: SupportsIndex) -> Diff:
+    def update(self, b: Sequence) -> Diff:
         """append new b and get new diffs
 
         Args:
-            b (SupportsIndex): b to be appended to current b
+            b (Sequence): b to be appended to current b
 
         Returns:
             Diff: namedtuple('Diff', ['matches', 'deletes', 'inserts']), corresponding to indexes of (a, b), indexes of a, indexes of b respectively
         """
-        self.b = self.b + b
+        self.b = self.b + b  # type: ignore [operator]
         self.debug.update(b)
         self.realtime_shortest_edit()
         self.backtrace()
