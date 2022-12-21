@@ -1,4 +1,4 @@
-from pymyers import MyersBase, MyersRealTime, MyersTree, Diff, Matches, Inserts, Deletes
+from pymyers import MyersBase, MyersRealTime, MyersTree, Diff
 
 
 def test_case1():

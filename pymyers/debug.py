@@ -5,7 +5,7 @@ import turtle
 from pathlib import Path
 from typing import List, Sequence, Tuple, Union
 
-Coords = Tuple[int, int]
+Coords = Tuple[int, int]  # TODO, change to namedtuple
 
 
 class Debug:

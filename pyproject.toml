@@ -20,5 +20,4 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/pypa/sampleproject"
-"Referece" = "https://blog.jcoglan.com/2017/02/12/the-myers-diff-algorithm-part-1/"
+"Homepage" = "https://github.com/leowooong/PyMyers.git"
