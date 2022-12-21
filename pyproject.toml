@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pymyers"
+version = "0.0.1"
+dependencies = [
+]
+authors = [
+  { name="Leo Wong", email="lei.wang6105@gmail.com" },
+]
+description = "Myers Diff with realtime and plot support"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/pypa/sampleproject"
+"Referece" = "https://blog.jcoglan.com/2017/02/12/the-myers-diff-algorithm-part-1/"

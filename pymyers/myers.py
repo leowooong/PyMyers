@@ -2,7 +2,7 @@ from collections import namedtuple
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional, Sequence
 
-from debug import Coords, Debug
+from pymyers.debug import Coords, Debug
 
 Matches = List[Coords]  # list of (a_coord, b_coord)
 Deletes = List[int]  # list of a_coord
@@ -251,6 +251,7 @@ class MyersTree(MyersBase):
                 # end
                 if node.x >= n and node.y >= m:
                     self.tree.end_node = node
+                    return
 
     def backtrace(self):
         end_node = self.tree.end_node
@@ -339,18 +340,3 @@ class MyersRealTime(MyersTree):
                     # tree is thus kept tidy
                     self.current_d = d
                     return
-
-
-if __name__ == "__main__":
-    a = "abcdefgqbcdefglkjhiofawsjnfdlkdlifjgo"
-    b1 = "abvcd"
-    b2 = "efognngqbb"
-    b3 = "cdlgkn"
-    b4 = "lsjdfoasidfajmljsjdfl"
-
-    fn = MyersRealTime(a, "", plot=True, animation=False, plot_size=50, log_path="./log")
-    print(fn.update(b1))
-    print(fn.update(b2))
-    print(fn.update(b3))
-    print(fn.update(b4))
-    fn.debug.done()
