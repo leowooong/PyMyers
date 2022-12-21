@@ -6,9 +6,9 @@
 - Extended the myers algorithm to support **real-time** calculations
 - Diff trace can be drawn with animation
 <figure class="">
-    <img src="./pymyers/references/init.png", title="init" width="300">
-    <img src="./pymyers/references/shortest_edit.png",title="shortest_edit" width="300">
-    <img src="./pymyers/references/backtrace.png", title="backtrace" width="300">
+    <img src="./pymyers/references/init.png", title="init" width="200">
+    <img src="./pymyers/references/shortest_edit.png",title="shortest_edit" width="200">
+    <img src="./pymyers/references/backtrace.png", title="backtrace" width="200">
 </figure>
 
 - Using a tree data structure to store and trace diff tracks
