@@ -49,6 +49,8 @@ class Debug:
             self._draw_background()
             turtle.tracer(self.animation)
 
+        self.forward_color = "red"
+
     def forward(self, start: Coord, end: Coord):
         if self.plot:
             self._pen3()
@@ -69,6 +71,13 @@ class Debug:
             turtle.tracer(False)
             self._update_background()
             turtle.tracer(self.animation)
+
+        if self.forward_color == "red":
+            self.forward_color = "yellow"
+        elif self.forward_color == "yellow":
+            self.forward_color = "green"
+        elif self.forward_color == "green":
+            self.forward_color = "red"
 
     def done(self):
         if self.plot:
@@ -212,7 +221,7 @@ class Debug:
         self.pen.pensize(1)
 
     def _pen3(self):
-        self.pen.color("red")
+        self.pen.color(self.forward_color)
         self.pen.pensize(3)
 
     def _pen4(self):
