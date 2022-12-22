@@ -48,16 +48,16 @@ class MyersBase:
                 # moving downward
                 if k == -d or (k != d and v[k - 1] < v[k + 1]):
                     x = v[k + 1]
-                    self.debug.forward((x, x - k - 1), (x, x - k))
+                    self.debug.forward(Coords(x, x - k - 1), Coords(x, x - k))
                 # moving rightward
                 else:
                     x = v[k - 1] + 1
-                    self.debug.forward((x - 1, x - k), (x, x - k))
+                    self.debug.forward(Coords(x - 1, x - k), Coords(x, x - k))
                 y = x - k
                 # moving diagonally
                 while x < n and y < m and self.cmp(self.a[x], self.b[y]):
                     x, y = x + 1, y + 1
-                    self.debug.forward((x - 1, y - 1), (x, y))
+                    self.debug.forward(Coords(x - 1, y - 1), Coords(x, y))
                 v[k] = x
                 # end
                 if x >= n and y >= m:
@@ -80,13 +80,13 @@ class MyersBase:
 
             # moving diagonally
             while x > prev_x and y > prev_y:
-                self.debug.backward((x, y), (x - 1, y - 1))
-                backward_trace.append((x, y))
+                self.debug.backward(Coords(x, y), Coords(x - 1, y - 1))
+                backward_trace.append(Coords(x, y))
                 x, y = x - 1, y - 1
-            self.debug.backward((x, y), (prev_x, prev_y))
-            backward_trace.append((x, y))
+            self.debug.backward(Coords(x, y), Coords(prev_x, prev_y))
+            backward_trace.append(Coords(x, y))
             x, y = prev_x, prev_y
-        return [(0, -1)] + backward_trace[::-1]  # add virtual root
+        return [Coords(0, -1)] + backward_trace[::-1]  # add virtual root
 
     @staticmethod
     def resolve_trace(trace: List[Coords]) -> Diff:
@@ -108,7 +108,7 @@ class MyersBase:
                 deletes.append(c[0])
             else:
                 inserts.append(c[1])
-        if inserts[0] == -1:
+        if len(inserts) and inserts[0] == -1:
             inserts = inserts[1:]  # remove virtual root
         return Diff(matches, deletes, inserts)
 
@@ -135,7 +135,7 @@ class TreeNode:
 
     @property
     def coords(self) -> Coords:
-        return (self.x, self.y)
+        return Coords(self.x, self.y)
 
     right_ch: Optional["TreeNode"] = None  # rightward child
     down_ch: Optional["TreeNode"] = None  # downward child

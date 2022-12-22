@@ -2,10 +2,11 @@ import datetime
 import pickle
 import shutil
 import turtle
+from collections import namedtuple
 from pathlib import Path
 from typing import List, Sequence, Tuple, Union
 
-Coords = Tuple[int, int]  # TODO, change to namedtuple
+Coords = namedtuple("Coords", ["x", "y"])
 
 
 class Debug:
