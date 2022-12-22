@@ -6,7 +6,7 @@ from collections import namedtuple
 from pathlib import Path
 from typing import List, Sequence, Union, Optional, Callable, Any
 
-Coords = namedtuple("Coords", ["x", "y"])
+Coord = namedtuple("Coord", ["x", "y"])
 
 
 class Debug:
@@ -49,12 +49,12 @@ class Debug:
             self._draw_background()
             turtle.tracer(self.animation)
 
-    def forward(self, start: Coords, end: Coords):
+    def forward(self, start: Coord, end: Coord):
         if self.plot:
             self._pen3()
             self._draw_line(start, end)
 
-    def backward(self, start: Coords, end: Coords):
+    def backward(self, start: Coord, end: Coord):
         if self.plot:
             self._pen4()
             self._draw_line(start, end)
@@ -187,14 +187,14 @@ class Debug:
                 if self.cmp(ca, cb):
                     self._draw_line([i, j], [i + 1, j + 1])
 
-    def _draw_line(self, start: Coords, end: Coords):
+    def _draw_line(self, start: Coord, end: Coord):
         self.pen.penup()
         self.pen.goto(start)
         self.pen.pendown()
         self.pen.goto(end)
         turtle.update()
 
-    def _draw_text(self, pos: Coords, text: str, font_size=16):
+    def _draw_text(self, pos: Coord, text: str, font_size=16):
         if type(text) != str:
             return
         self.pen.penup()

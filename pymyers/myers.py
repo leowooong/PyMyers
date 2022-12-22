@@ -2,9 +2,9 @@ from collections import namedtuple
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional, Sequence
 
-from pymyers.debug import Coords, Debug
+from pymyers.debug import Coord, Debug
 
-Matches = List[Coords]  # list of (a_coord, b_coord)
+Matches = List[Coord]  # list of (a_coord, b_coord)
 Deletes = List[int]  # list of a_coord
 Inserts = List[int]  # list of b_coord
 Diff = namedtuple("Diff", ["matches", "deletes", "inserts"])
@@ -48,22 +48,22 @@ class MyersBase:
                 # moving downward
                 if k == -d or (k != d and v[k - 1] < v[k + 1]):
                     x = v[k + 1]
-                    self.debug.forward(Coords(x, x - k - 1), Coords(x, x - k))
+                    self.debug.forward(Coord(x, x - k - 1), Coord(x, x - k))
                 # moving rightward
                 else:
                     x = v[k - 1] + 1
-                    self.debug.forward(Coords(x - 1, x - k), Coords(x, x - k))
+                    self.debug.forward(Coord(x - 1, x - k), Coord(x, x - k))
                 y = x - k
                 # moving diagonally
                 while x < n and y < m and self.cmp(self.a[x], self.b[y]):
                     x, y = x + 1, y + 1
-                    self.debug.forward(Coords(x - 1, y - 1), Coords(x, y))
+                    self.debug.forward(Coord(x - 1, y - 1), Coord(x, y))
                 v[k] = x
                 # end
                 if x >= n and y >= m:
                     return trace
 
-    def backtrace(self, forward_trace: List[List[int]]) -> List[Coords]:
+    def backtrace(self, forward_trace: List[List[int]]) -> List[Coord]:
         x, y = len(self.a), len(self.b)
         backward_trace = []
         for d in range(len(forward_trace))[::-1]:
@@ -80,20 +80,20 @@ class MyersBase:
 
             # moving diagonally
             while x > prev_x and y > prev_y:
-                self.debug.backward(Coords(x, y), Coords(x - 1, y - 1))
-                backward_trace.append(Coords(x, y))
+                self.debug.backward(Coord(x, y), Coord(x - 1, y - 1))
+                backward_trace.append(Coord(x, y))
                 x, y = x - 1, y - 1
-            self.debug.backward(Coords(x, y), Coords(prev_x, prev_y))
-            backward_trace.append(Coords(x, y))
+            self.debug.backward(Coord(x, y), Coord(prev_x, prev_y))
+            backward_trace.append(Coord(x, y))
             x, y = prev_x, prev_y
-        return [Coords(0, -1)] + backward_trace[::-1]  # add virtual root
+        return [Coord(0, -1)] + backward_trace[::-1]  # add virtual root
 
     @staticmethod
-    def resolve_trace(trace: List[Coords]) -> Diff:
+    def resolve_trace(trace: List[Coord]) -> Diff:
         """resolve trace to 3 lists of int(a_coord/b_coord)
 
         Args:
-            trace (List[Coords]): trace of a list of Coords, the return value of diff
+            trace (List[Coord]): trace of a list of Coord, the return value of diff
 
         Returns:
             Diff: namedtuple('Diff', ['matches', 'deletes', 'inserts']), corresponding to indexes of (a, b), indexes of a, indexes of b respectively
@@ -134,8 +134,8 @@ class TreeNode:
         return self.x - self.y
 
     @property
-    def coords(self) -> Coords:
-        return Coords(self.x, self.y)
+    def coord(self) -> Coord:
+        return Coord(self.x, self.y)
 
     right_ch: Optional["TreeNode"] = None  # rightward child
     down_ch: Optional["TreeNode"] = None  # downward child
@@ -175,12 +175,12 @@ class Tree:
         return self._leaves
 
     @property
-    def trace(self) -> List[Coords]:
-        return [n.coords for n in self._trace]
+    def trace(self) -> List[Coord]:
+        return [n.coord for n in self._trace]
 
     @property
-    def latest_trace(self) -> List[Coords]:
-        return [n.coords for n in self._latest_trace]
+    def latest_trace(self) -> List[Coord]:
+        return [n.coord for n in self._latest_trace]
 
     def append(self, node: TreeNode) -> None:
         self._leaves[node.k] = node
@@ -237,17 +237,17 @@ class MyersTree(MyersBase):
                 if k == -d or (k != d and self.tree.leaves[k - 1].x < self.tree.leaves[k + 1].x):
                     node = self.tree.leaves[k + 1].downward()
                     self.tree.append(node)
-                    self.debug.forward(node.p.coords, node.coords)
+                    self.debug.forward(node.p.coord, node.coord)
                 # moving rightward
                 else:
                     node = self.tree.leaves[k - 1].rightward()
                     self.tree.append(node)
-                    self.debug.forward(node.p.coords, node.coords)
+                    self.debug.forward(node.p.coord, node.coord)
                 # moving diagonally
                 while node.x < n and node.y < m and self.cmp(self.a[node.x], self.b[node.y]):
                     node = self.tree.leaves[k].diagonal()
                     self.tree.append(node)
-                    self.debug.forward(node.p.coords, node.coords)
+                    self.debug.forward(node.p.coord, node.coord)
                 # end
                 if node.x >= n and node.y >= m:
                     self.tree.end_node = node
@@ -256,7 +256,7 @@ class MyersTree(MyersBase):
     def backtrace(self):
         end_node = self.tree.end_node
         while not self.tree.on_trace(end_node):  # tree.root is on trace
-            self.debug.backward(end_node.coords, end_node.p.coords)
+            self.debug.backward(end_node.coord, end_node.p.coord)
             end_node = end_node.p
 
     def diff(self) -> Diff:
@@ -305,6 +305,8 @@ class MyersRealTime(MyersTree):
         Returns:
             Diff: namedtuple('Diff', ['matches', 'deletes', 'inserts']), corresponding to indexes of (a, b), indexes of a, indexes of b respectively
         """
+        if not len(b):
+            return self.resolve_trace([])
         self.b = self.b + b  # type: ignore [operator]
         self.debug.update(b)
         self.realtime_shortest_edit()
@@ -322,17 +324,17 @@ class MyersRealTime(MyersTree):
                 if k == -d or (k != d and self.tree.leaves[k - 1].x < self.tree.leaves[k + 1].x):
                     node = self.tree.leaves[k + 1].downward()
                     self.tree.append(node)
-                    self.debug.forward(node.p.coords, node.coords)
+                    self.debug.forward(node.p.coord, node.coord)
                 # moving rightward
                 else:
                     node = self.tree.leaves[k - 1].rightward()
                     self.tree.append(node)
-                    self.debug.forward(node.p.coords, node.coords)
+                    self.debug.forward(node.p.coord, node.coord)
                 # moving diagonally
                 while node.x < n and node.y < m and self.cmp(self.a[node.x], self.b[node.y]):
                     node = self.tree.leaves[k].diagonal()
                     self.tree.append(node)
-                    self.debug.forward(node.p.coords, node.coords)
+                    self.debug.forward(node.p.coord, node.coord)
                 # end
                 if node.y >= m:  # TODO: break too early, there may be a better path in dth-loop
                     self.tree.end_node = node
