@@ -143,28 +143,42 @@ class TreeNode:
     p: Optional["TreeNode"] = None  # parent
 
     def downward(self) -> "TreeNode":
+        if self.down_ch:
+            return self.down_ch
         node = TreeNode(self.x, self.y + 1, p=self)
         self.down_ch = node
         return node
 
     def rightward(self) -> "TreeNode":
+        if self.right_ch:
+            return self.right_ch
         node = TreeNode(self.x + 1, self.y, p=self)
         self.right_ch = node
         return node
 
     def diagonal(self) -> "TreeNode":
+        if self.diag_ch:
+            return self.diag_ch
         node = TreeNode(self.x + 1, self.y + 1, p=self)
         self.diag_ch = node
         return node
+
+    def __gt__(self, other: "TreeNode") -> bool:
+        return self.x + self.y > other.x + other.y
+
+    def __eq__(self, other: 'TreeNode') -> bool:
+        return self.coord == other.coord
 
 
 class Tree:
     def __init__(self, leave_size: int = 3):
         self.root: TreeNode = TreeNode(0, -1)  # virtual root
         self.end_node: TreeNode = self.root
+        self.farest_node: TreeNode = self.root
 
         self._leaves: List[Optional[TreeNode]] = [None] * leave_size
         self._leaves[1] = self.root  # set virtual root
+        self.save()
 
         self._trace: List[TreeNode] = [self.root]
         self._latest_trace: List[TreeNode] = []
@@ -184,6 +198,7 @@ class Tree:
 
     def append(self, node: TreeNode) -> None:
         self._leaves[node.k] = node
+        self.farest_node = max(self.farest_node, node)
 
     def expand(self, d: int) -> None:
         if len(self._leaves) < d * 2 + 1:
@@ -200,6 +215,15 @@ class Tree:
             return True
         except ValueError:
             return False
+
+    def save(self):
+        self._leaves_backup = self._leaves[:]
+        self.saved = True
+
+    def load(self):
+        self._leaves = self._leaves_backup[:]
+        self.farest_node = self.root
+        self.saved = False
 
 
 class MyersTree(MyersBase):
@@ -309,6 +333,7 @@ class MyersRealTime(MyersTree):
             return self.resolve_trace([])
         self.b = self.b + b  # type: ignore [operator]
         self.debug.update(b)
+        self.tree.load()
         self.realtime_shortest_edit()
         self.backtrace()
         return self.resolve_trace(self.tree.latest_trace)
@@ -335,10 +360,11 @@ class MyersRealTime(MyersTree):
                     node = self.tree.leaves[k].diagonal()
                     self.tree.append(node)
                     self.debug.forward(node.p.coord, node.coord)
-                # end
-                if node.y >= m:  # TODO: break too early, there may be a better path in dth-loop
-                    self.tree.end_node = node
-                    # in next update, d-loop start from d again, the dth tree.leaves will be updated
-                    # tree is thus kept tidy
+                # saving status
+                if not self.tree.saved and node.y == m: 
+                    self.tree.save()
                     self.current_d = d
-                    return
+            # end
+            if self.tree.farest_node.y >= m:
+                self.tree.end_node = self.tree.farest_node
+                break
