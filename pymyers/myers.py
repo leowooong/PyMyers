@@ -35,7 +35,7 @@ class MyersBase:
         self.a = a
         self.b = b
         self.cmp = cmp if cmp else lambda a, b: a == b
-        self.debug = Debug(a, b, plot=plot, animation=animation, plot_size=plot_size, log_path=log_path)
+        self.debug = Debug(a, b, cmp=self.cmp, plot=plot, animation=animation, plot_size=plot_size, log_path=log_path)
 
     def shortest_edit(self) -> List[List[int]]:  # type: ignore [return]
         n, m = len(self.a), len(self.b)

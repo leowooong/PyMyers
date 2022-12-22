@@ -4,7 +4,7 @@ import shutil
 import turtle
 from collections import namedtuple
 from pathlib import Path
-from typing import List, Sequence, Tuple, Union
+from typing import List, Sequence, Union, Optional, Callable, Any
 
 Coords = namedtuple("Coords", ["x", "y"])
 
@@ -14,6 +14,7 @@ class Debug:
         self,
         a: Sequence,
         b: Sequence,
+        cmp: Optional[Callable[[Any, Any], bool]] = None,
         plot: bool = True,
         animation: bool = True,
         plot_size: int = 50,
@@ -22,6 +23,7 @@ class Debug:
     ):
         self.a = a
         self.b = b
+        self.cmp = cmp if cmp else lambda a, b: a == b
         self.plot = plot
         self.animation = animation
         self.plot_size = plot_size
@@ -139,7 +141,7 @@ class Debug:
             for j, cb in enumerate(self.b):
                 if j < self.prev_m:
                     continue
-                if ca == cb:
+                if self.cmp(ca, cb):
                     self._draw_line([i, j], [i + 1, j + 1])
 
     def _draw_background(self):
@@ -182,7 +184,7 @@ class Debug:
         self._pen2()
         for i, ca in enumerate(self.a):
             for j, cb in enumerate(self.b):
-                if ca == cb:
+                if self.cmp(ca, cb):
                     self._draw_line([i, j], [i + 1, j + 1])
 
     def _draw_line(self, start: Coords, end: Coords):
@@ -193,6 +195,8 @@ class Debug:
         turtle.update()
 
     def _draw_text(self, pos: Coords, text: str, font_size=16):
+        if type(text) != str:
+            return
         self.pen.penup()
         self.pen.goto(pos)
         self.pen.pendown()
