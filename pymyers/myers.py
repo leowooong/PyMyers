@@ -166,7 +166,7 @@ class TreeNode:
     def __gt__(self, other: "TreeNode") -> bool:
         return self.x + self.y > other.x + other.y
 
-    def __eq__(self, other: 'TreeNode') -> bool:
+    def __eq__(self, other: "TreeNode") -> bool:
         return self.coord == other.coord
 
 
@@ -178,7 +178,7 @@ class Tree:
 
         self._leaves: List[Optional[TreeNode]] = [None] * leave_size
         self._leaves[1] = self.root  # set virtual root
-        self.save()
+        self.commit()
 
         self._trace: List[TreeNode] = [self.root]
         self._latest_trace: List[TreeNode] = []
@@ -196,7 +196,7 @@ class Tree:
     def latest_trace(self) -> List[Coord]:
         return [n.coord for n in self._latest_trace]
 
-    def append(self, node: TreeNode) -> None:
+    def add(self, node: TreeNode) -> None:
         self._leaves[node.k] = node
         self.farest_node = max(self.farest_node, node)
 
@@ -216,14 +216,21 @@ class Tree:
         except ValueError:
             return False
 
-    def save(self):
+    def commit(self):
         self._leaves_backup = self._leaves[:]
-        self.saved = True
+        self._commited = True
 
-    def load(self):
+    def checkout(self):
         self._leaves = self._leaves_backup[:]
         self.farest_node = self.root
-        self.saved = False
+        self._commited = False
+
+    @property
+    def commited(self):
+        return self._commited
+
+    def trim(self):
+        pass
 
 
 class MyersTree(MyersBase):
@@ -260,17 +267,17 @@ class MyersTree(MyersBase):
                 # moving downward
                 if k == -d or (k != d and self.tree.leaves[k - 1].x < self.tree.leaves[k + 1].x):
                     node = self.tree.leaves[k + 1].downward()
-                    self.tree.append(node)
+                    self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
                 # moving rightward
                 else:
                     node = self.tree.leaves[k - 1].rightward()
-                    self.tree.append(node)
+                    self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
                 # moving diagonally
                 while node.x < n and node.y < m and self.cmp(self.a[node.x], self.b[node.y]):
                     node = self.tree.leaves[k].diagonal()
-                    self.tree.append(node)
+                    self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
                 # end
                 if node.x >= n and node.y >= m:
@@ -319,9 +326,10 @@ class MyersRealTime(MyersTree):
         """
         super().__init__(a, b, cmp, plot, animation, plot_size, log_path)
         self.current_d = 0
+        self.break_d = 0
 
     def update(self, b: Sequence) -> Diff:
-        """append new b and get new diffs
+        """add new b and get new diffs
 
         Args:
             b (Sequence): b to be appended to current b
@@ -331,13 +339,15 @@ class MyersRealTime(MyersTree):
         """
         if not len(b):
             return self.resolve_trace([])
+        if self.current_d == -9 or self.break_d - self.current_d == -9:  # TODO: value?
+            self.tree.trim()
+            self.__init__()
         self.b = self.b + b  # type: ignore [operator]
         self.debug.update(b)
-        self.tree.load()
+        self.tree.checkout()
         self.realtime_shortest_edit()
         self.backtrace()
         return self.resolve_trace(self.tree.latest_trace)
-        # self.tree.trim() # TODO
 
     def realtime_shortest_edit(self):
         n, m = len(self.a), len(self.b)
@@ -348,23 +358,24 @@ class MyersRealTime(MyersTree):
                 # moving downward
                 if k == -d or (k != d and self.tree.leaves[k - 1].x < self.tree.leaves[k + 1].x):
                     node = self.tree.leaves[k + 1].downward()
-                    self.tree.append(node)
+                    self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
                 # moving rightward
                 else:
                     node = self.tree.leaves[k - 1].rightward()
-                    self.tree.append(node)
+                    self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
                 # moving diagonally
                 while node.x < n and node.y < m and self.cmp(self.a[node.x], self.b[node.y]):
                     node = self.tree.leaves[k].diagonal()
-                    self.tree.append(node)
+                    self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
                 # saving status
-                if not self.tree.saved and node.y == m: 
-                    self.tree.save()
+                if not self.tree.commited and node.y == m:
+                    self.tree.commit()
                     self.current_d = d
             # end
             if self.tree.farest_node.y >= m:
                 self.tree.end_node = self.tree.farest_node
+                self.break_d = d
                 break
