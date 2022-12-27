@@ -4,3 +4,5 @@ __pycache__/
 
 pymyers.egg-info/
 dist/
+build/
+.mypy_cache/

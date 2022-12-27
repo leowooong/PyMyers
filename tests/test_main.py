@@ -84,17 +84,17 @@ def test_case5():
 def test_case6():
     a = [0, 1, 2, 3, 4, 5, 6, 7]
     b = "032145"
-    cmp = lambda a, b: a == int(b)
+    eq = lambda a, b: a == int(b)
     matches = [(0, 0), (3, 1), (4, 4), (5, 5)]
     deletes = [1, 2, 6, 7]
     inserts = [2, 3]
     diff = Diff(matches, deletes, inserts)
 
-    diff_base = MyersBase(a, b, cmp=cmp).diff()
+    diff_base = MyersBase(a, b, eq=eq).diff()
     assert diff_base == diff
-    diff_tree = MyersTree(a, b, cmp=cmp).diff()
+    diff_tree = MyersTree(a, b, eq=eq).diff()
     assert diff_tree == diff
-    diff_rt = MyersRealTime(a, b, cmp=cmp).diff()
+    diff_rt = MyersRealTime(a, b, eq=eq).diff()
     assert diff_rt == diff
 
 
@@ -123,4 +123,14 @@ def test_case8():
 
 
 if __name__ == "__main__":
-    test_case8()
+    a = "56789asdfghjkl"
+    b = ""
+
+    myers = MyersRealTime(a, b, plot=True)
+    print(myers.update('056'))
+    print(myers.update('90d2'))
+    print(myers.update('7892'))
+    print(myers.update('asd'))
+    print(myers.update('guhj'))
+    myers.debug.done()
+

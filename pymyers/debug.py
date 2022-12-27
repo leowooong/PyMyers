@@ -14,7 +14,7 @@ class Debug:
         self,
         a: Sequence,
         b: Sequence,
-        cmp: Optional[Callable[[Any, Any], bool]] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None,
         plot: bool = True,
         animation: bool = True,
         plot_size: int = 50,
@@ -23,7 +23,7 @@ class Debug:
     ):
         self.a = a
         self.b = b
-        self.cmp = cmp if cmp else lambda a, b: a == b
+        self.eq = eq if eq else lambda a, b: a == b
         self.plot = plot
         self.animation = animation
         self.plot_size = plot_size
@@ -150,7 +150,7 @@ class Debug:
             for j, cb in enumerate(self.b):
                 if j < self.prev_m:
                     continue
-                if self.cmp(ca, cb):
+                if self.eq(ca, cb):
                     self._draw_line([i, j], [i + 1, j + 1])
 
     def _draw_background(self):
@@ -193,7 +193,7 @@ class Debug:
         self._pen2()
         for i, ca in enumerate(self.a):
             for j, cb in enumerate(self.b):
-                if self.cmp(ca, cb):
+                if self.eq(ca, cb):
                     self._draw_line([i, j], [i + 1, j + 1])
 
     def _draw_line(self, start: Coord, end: Coord):

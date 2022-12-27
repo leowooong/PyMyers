@@ -15,7 +15,7 @@ class MyersBase:
         self,
         a: Sequence,
         b: Sequence,
-        cmp: Optional[Callable[[Any, Any], bool]] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None,
         plot: bool = False,
         animation: bool = False,
         plot_size: int = 50,
@@ -26,7 +26,7 @@ class MyersBase:
         Args:
             a (Sequence): a reference str/list/...
             b (Sequence): str/list/... that is expected to be compared with a
-            cmp (Optional[Callable[[Any, Any], bool]]): cmp fn which should resolve a==b. Defaults to None.
+            eq (Optional[Callable[[Any, Any], bool]]): eq fn which should resolve a==b. Defaults to None.
             plot (bool, optional): whether plot debug figure. Defaults to False.
             animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
             plot_size (int, optional): debug figure size. Defaults to 50.
@@ -34,8 +34,8 @@ class MyersBase:
         """
         self.a = a
         self.b = b
-        self.cmp = cmp if cmp else lambda a, b: a == b
-        self.debug = Debug(a, b, cmp=self.cmp, plot=plot, animation=animation, plot_size=plot_size, log_path=log_path)
+        self.eq = eq if eq else lambda a, b: a == b
+        self.debug = Debug(a, b, eq=self.eq, plot=plot, animation=animation, plot_size=plot_size, log_path=log_path)
 
     def shortest_edit(self) -> List[List[int]]:  # type: ignore [return]
         n, m = len(self.a), len(self.b)
@@ -55,7 +55,7 @@ class MyersBase:
                     self.debug.forward(Coord(x - 1, x - k), Coord(x, x - k))
                 y = x - k
                 # moving diagonally
-                while x < n and y < m and self.cmp(self.a[x], self.b[y]):
+                while x < n and y < m and self.eq(self.a[x], self.b[y]):
                     x, y = x + 1, y + 1
                     self.debug.forward(Coord(x - 1, y - 1), Coord(x, y))
                 v[k] = x
@@ -238,7 +238,7 @@ class MyersTree(MyersBase):
         self,
         a: Sequence,
         b: Sequence,
-        cmp: Optional[Callable[[Any, Any], bool]] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None,
         plot: bool = False,
         animation: bool = False,
         plot_size: int = 50,
@@ -249,13 +249,13 @@ class MyersTree(MyersBase):
         Args:
             a (Sequence): a reference str/list/...
             b (Sequence): str/list/... that is expected to be compared with a
-            cmp (Optional[Callable[[Any, Any], bool]]): cmp fn which should resolve a==b. Defaults to None.
+            eq (Optional[Callable[[Any, Any], bool]]): eq fn which should resolve a==b. Defaults to None.
             plot (bool, optional): whether plot debug figure. Defaults to False.
             animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
             plot_size (int, optional): debug figure size. Defaults to 50.
             log_path (str, optional): log_path to save a, b. Defaults to '', no data will be saved.
         """
-        super().__init__(a, b, cmp, plot, animation, plot_size, log_path)
+        super().__init__(a, b, eq, plot, animation, plot_size, log_path)
         self.tree = Tree()
 
     def shortest_edit(self):
@@ -275,7 +275,7 @@ class MyersTree(MyersBase):
                     self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
                 # moving diagonally
-                while node.x < n and node.y < m and self.cmp(self.a[node.x], self.b[node.y]):
+                while node.x < n and node.y < m and self.eq(self.a[node.x], self.b[node.y]):
                     node = self.tree.leaves[k].diagonal()
                     self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
@@ -307,7 +307,7 @@ class MyersRealTime(MyersTree):
         self,
         a: Sequence,
         b: Sequence,
-        cmp: Optional[Callable[[Any, Any], bool]] = None,
+        eq: Optional[Callable[[Any, Any], bool]] = None,
         plot: bool = False,
         animation: bool = False,
         plot_size: int = 50,
@@ -318,13 +318,13 @@ class MyersRealTime(MyersTree):
         Args:
             a (Sequence): a reference str/list/...
             b (Sequence): str/list/... that is expected to be compared with a, b can be empty.
-            cmp (Optional[Callable[[Any, Any], bool]]): cmp fn which should resolve a==b. Defaults to None.
+            eq (Optional[Callable[[Any, Any], bool]]): eq fn which should resolve a==b. Defaults to None.
             plot (bool, optional): whether plot debug figure. Defaults to False.
             animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
             plot_size (int, optional): debug figure size. Defaults to 50.
             log_path (str, optional): log_path to save a, b. Defaults to '', no data will be saved.
         """
-        super().__init__(a, b, cmp, plot, animation, plot_size, log_path)
+        super().__init__(a, b, eq, plot, animation, plot_size, log_path)
         self.current_d = 0
         self.break_d = 0
 
@@ -366,7 +366,7 @@ class MyersRealTime(MyersTree):
                     self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
                 # moving diagonally
-                while node.x < n and node.y < m and self.cmp(self.a[node.x], self.b[node.y]):
+                while node.x < n and node.y < m and self.eq(self.a[node.x], self.b[node.y]):
                     node = self.tree.leaves[k].diagonal()
                     self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
