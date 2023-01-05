@@ -2,11 +2,30 @@ import datetime
 import pickle
 import shutil
 import turtle
-from collections import namedtuple
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Sequence, Union, Optional, Callable, Any
+from typing import Any, Callable, List, Optional, Sequence, Union
 
-Coord = namedtuple("Coord", ["x", "y"])
+
+@dataclass
+class Coord:
+    x: int
+    y: int
+
+    def __iter__(self):
+        yield self.x
+        yield self.y
+
+    def __add__(self, other: "Coord"):
+        return Coord(self.x + other.x, self.y + other.y)
+
+    def __eq__(self, other: object):
+        if isinstance(other, Coord):
+            return self.x == other.x and self.y == other.y
+        if isinstance(other, Sequence):
+            return self.x == other[0] and self.y == other[1]
+        else:
+            return NotImplemented
 
 
 class Debug:
@@ -82,6 +101,10 @@ class Debug:
     def done(self):
         if self.plot:
             turtle.done()
+
+    def clear(self):
+        if self.plot:
+            turtle.clearscreen()
 
     def _write(self, data, filename):
         if self.log_path:

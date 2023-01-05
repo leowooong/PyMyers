@@ -1,4 +1,4 @@
-from pymyers import MyersBase, MyersRealTime, MyersTree, Diff
+from pymyers import Diff, MyersBase, MyersRealTime, MyersTree
 
 
 def test_case1():
@@ -107,13 +107,14 @@ def test_case7():
     b4 = "890"
     b = [b0, b1, b2, b3, b4]
 
-    myers = MyersRealTime(a, b[0])
+    myers = MyersRealTime(a, b[0], max_depth=50)
     for bi in b[1:]:
         print(myers.update(bi))
 
 
 def test_case8():
     from pymyers import Debug
+
     log_folder = "tests/log-myers-2022-12-21-18:19:11"
     a, *b = Debug.read(log_folder)
 
@@ -126,11 +127,10 @@ if __name__ == "__main__":
     a = "56789asdfghjkl"
     b = ""
 
-    myers = MyersRealTime(a, b, plot=True)
-    print(myers.update('056'))
-    print(myers.update('90d2'))
-    print(myers.update('7892'))
-    print(myers.update('asd'))
-    print(myers.update('guhj'))
+    myers = MyersRealTime(a, b, plot=True, max_depth=4, truncate_depth=2)
+    print(myers.update("056"))
+    print(myers.update("90d2"))
+    print(myers.update("7892"))
+    print(myers.update("asd"))
+    print(myers.update("guhj"))
     myers.debug.done()
-

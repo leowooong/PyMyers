@@ -35,6 +35,10 @@ class MyersBase:
         self.a = a
         self.b = b
         self.eq = eq if eq else lambda a, b: a == b
+        self.plot = plot
+        self.animation = animation
+        self.plot_size = plot_size
+        self.log_path = log_path
         self.debug = Debug(a, b, eq=self.eq, plot=plot, animation=animation, plot_size=plot_size, log_path=log_path)
 
     def shortest_edit(self) -> List[List[int]]:  # type: ignore [return]
@@ -102,12 +106,12 @@ class MyersBase:
         deletes: Deletes = []
         inserts: Inserts = []
         for i, c in enumerate(trace[:-1]):
-            if c[0] + 1 == trace[i + 1][0] and c[1] + 1 == trace[i + 1][1]:
+            if c.x + 1 == trace[i + 1].x and c.y + 1 == trace[i + 1].y:
                 matches.append(c)
-            elif c[0] + 1 == trace[i + 1][0]:
-                deletes.append(c[0])
+            elif c.x + 1 == trace[i + 1].x:
+                deletes.append(c.x)
             else:
-                inserts.append(c[1])
+                inserts.append(c.y)
         if len(inserts) and inserts[0] == -1:
             inserts = inserts[1:]  # remove virtual root
         return Diff(matches, deletes, inserts)
@@ -163,10 +167,15 @@ class TreeNode:
         self.diag_ch = node
         return node
 
+    def diagonal_with(self, other: "TreeNode") -> bool:
+        return self.coord == other.coord + Coord(1, 1) or self.coord + Coord(1, 1) == other.coord
+
     def __gt__(self, other: "TreeNode") -> bool:
         return self.x + self.y > other.x + other.y
 
-    def __eq__(self, other: "TreeNode") -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, TreeNode):
+            return NotImplemented
         return self.coord == other.coord
 
 
@@ -229,8 +238,20 @@ class Tree:
     def commited(self):
         return self._commited
 
-    def trim(self):
-        pass
+    def truncate(self, depth: int) -> Coord:
+        node = self.end_node
+        d = 0
+        while node.p:
+            if not node.diagonal_with(node.p):
+                d += 1
+            if d >= depth and node.diagonal_with(node.p):
+                node = node.p
+                break
+            node = node.p  # type: ignore [assignment]
+
+        if node == self.root:
+            node = self.root.down_ch  # type: ignore [assignment]
+        return node.coord
 
 
 class MyersTree(MyersBase):
@@ -312,6 +333,8 @@ class MyersRealTime(MyersTree):
         animation: bool = False,
         plot_size: int = 50,
         log_path: str = "",
+        max_depth: int = 50,
+        truncate_depth: Optional[int] = None,
     ):
         """myerse with realtime support
 
@@ -323,10 +346,21 @@ class MyersRealTime(MyersTree):
             animation (bool, optional): draw debug figure slowly or instantly. Defaults to True.
             plot_size (int, optional): debug figure size. Defaults to 50.
             log_path (str, optional): log_path to save a, b. Defaults to '', no data will be saved.
+            max_depth (int): max depth of trace
+            truncate_depth (int): min depth backtraced from end_node after trace exceeds max_depth,
+                                  coords not backtraced will be deleted,
+                                  the bigger truncate_depth the more coords will be reserved,
+                                  truncate_depth should not be bigger than max_depth,
+                                  if unspecified, defaults to truncate_depth // 3.
+
         """
         super().__init__(a, b, eq, plot, animation, plot_size, log_path)
         self.current_d = 0
         self.break_d = 0
+        self.start_coord = Coord(0, 0)
+
+        self.max_depth = max_depth
+        self.truncate_depth = truncate_depth if truncate_depth else max_depth // 3
 
     def update(self, b: Sequence) -> Diff:
         """add new b and get new diffs
@@ -337,17 +371,37 @@ class MyersRealTime(MyersTree):
         Returns:
             Diff: namedtuple('Diff', ['matches', 'deletes', 'inserts']), corresponding to indexes of (a, b), indexes of a, indexes of b respectively
         """
+        self.truncate()
         if not len(b):
             return self.resolve_trace([])
-        if self.current_d == -9 or self.break_d - self.current_d == -9:  # TODO: value?
-            self.tree.trim()
-            self.__init__()
+
         self.b = self.b + b  # type: ignore [operator]
         self.debug.update(b)
         self.tree.checkout()
         self.realtime_shortest_edit()
         self.backtrace()
-        return self.resolve_trace(self.tree.latest_trace)
+        trace = [c + self.start_coord for c in self.tree.latest_trace]
+        return self.resolve_trace(trace)
+
+    def truncate(self):
+        if self.current_d >= self.max_depth:  # self.break_d - self.current_d == -9:  # TODO: value?
+            self.current_d = 0
+            self.break_d = 0
+            truncate_coord = self.tree.truncate(self.truncate_depth)
+            self.a = self.a[truncate_coord.x :]
+            self.b = self.b[truncate_coord.y :]
+            self.start_coord += truncate_coord
+            self.tree = Tree()
+            self.debug.clear()
+            self.debug = Debug(
+                self.a,
+                self.b,
+                eq=self.eq,
+                plot=self.plot,
+                animation=self.animation,
+                plot_size=self.plot_size,
+                log_path=self.log_path,
+            )
 
     def realtime_shortest_edit(self):
         n, m = len(self.a), len(self.b)

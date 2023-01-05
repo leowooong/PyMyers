@@ -1,6 +1,6 @@
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __license__ = "MIT"
 
-from .myers import Coord, Matches, Deletes, Inserts, Diff
-from .myers import MyersBase, MyersTree, MyersRealTime
 from .debug import Debug
+from .myers import (Coord, Deletes, Diff, Inserts, Matches, MyersBase,
+                    MyersRealTime, MyersTree)

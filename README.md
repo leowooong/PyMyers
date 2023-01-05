@@ -14,6 +14,7 @@
 
 - Using a tree data structure to store and track diff traces
 - Inputs can be easily logged and restored
+- code is well orgnized with black/isort/mypy/pytest
 
 # Installation
 
@@ -69,7 +70,7 @@ b3 = "687"
 b4 = "890"
 b = [b0, b1, b2, b3, b4]
 
-myers = MyersRealTime(a, b[0])
+myers = MyersRealTime(a, b[0], max_depth=50)
 for bi in b[1:]:
     print(myers.update(bi))
 ```
