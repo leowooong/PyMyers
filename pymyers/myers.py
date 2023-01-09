@@ -392,7 +392,6 @@ class MyersRealTime(MyersTree):
             self.b = self.b[truncate_coord.y :]
             self.start_coord += truncate_coord
             self.tree = Tree()
-            self.debug.clear()
             self.debug = Debug(
                 self.a,
                 self.b,
@@ -401,6 +400,7 @@ class MyersRealTime(MyersTree):
                 animation=self.animation,
                 plot_size=self.plot_size,
                 log_path=self.log_path,
+                start_coord=self.start_coord,
             )
 
     def realtime_shortest_edit(self):

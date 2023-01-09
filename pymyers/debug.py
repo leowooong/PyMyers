@@ -39,13 +39,17 @@ class Debug:
         plot_size: int = 50,
         log_path: Union[str, Path] = "",
         max_logs: int = 5,
+        max_n: int = 100,
+        max_m: int = 80,
+        start_coord: Coord = Coord(0, 0),
     ):
-        self.a = a
-        self.b = b
+        self.a = a[:max_n] if max_n else a
+        self.b = b[:max_m] if max_m else b
         self.eq = eq if eq else lambda a, b: a == b
         self.plot = plot
         self.animation = animation
         self.plot_size = plot_size
+        self.start_coord = start_coord
 
         # logging
         now = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
@@ -57,13 +61,14 @@ class Debug:
                 shutil.rmtree(p)
         else:
             self.log_path = ""  # type: ignore [assignment]
-        self._write(a, "a0.pickle")
-        self._write(b, "b0.pickle")
+        self._write(self.a, "a0.pickle")
+        self._write(self.b, "b0.pickle")
         self._update_num = 1
 
-        self.n = len(a)
-        self.m = len(b)
+        self.n = len(self.a)
+        self.m = len(self.b)
         if self.plot:
+            self._clear()
             turtle.tracer(False)
             self._draw_background()
             turtle.tracer(self.animation)
@@ -102,15 +107,6 @@ class Debug:
         if self.plot:
             turtle.done()
 
-    def clear(self):
-        if self.plot:
-            turtle.clearscreen()
-
-    def _write(self, data, filename):
-        if self.log_path:
-            with open(self.log_path / filename, "wb") as f:
-                pickle.dump(data, f)
-
     @staticmethod
     def read(folder: Union[str, Path]) -> List[Sequence]:
         """read from myers log folder
@@ -136,6 +132,15 @@ class Debug:
             else:
                 break
         return tmp
+
+    def _clear(self):
+        if self.plot:
+            turtle.clearscreen()
+
+    def _write(self, data, filename):
+        if self.log_path:
+            with open(self.log_path / filename, "wb") as f:
+                pickle.dump(data, f)
 
     def _update_background(self):
         # set cavas size coordinates loaction/direction
@@ -165,7 +170,8 @@ class Debug:
         for i, c in enumerate(self.b):
             self._draw_text([-0.1, i + 0.6], c, text_font_size)
         for i in range(self.m + 1):
-            self._draw_text([-0.1, i], str(i), coords_font_size)
+            c = str(i + self.start_coord.y)
+            self._draw_text([-0.1, i], c, coords_font_size)
 
         # draw diagonals with _pen2
         self._pen2()
@@ -205,12 +211,14 @@ class Debug:
         for i, c in enumerate(self.a):
             self._draw_text([i + 0.5, 0], c, text_font_size)
         for i in range(self.n + 1):
-            self._draw_text([i, 0], str(i), coords_font_size)
+            c = str(i + self.start_coord.x)
+            self._draw_text([i, 0], c, coords_font_size)
 
         for i, c in enumerate(self.b):
             self._draw_text([-0.1, i + 0.6], c, text_font_size)
         for i in range(self.m + 1):
-            self._draw_text([-0.1, i], str(i), coords_font_size)
+            c = str(i + self.start_coord.y)
+            self._draw_text([-0.1, i], c, coords_font_size)
 
         # draw diagonals with _pen2
         self._pen2()
