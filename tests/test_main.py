@@ -127,7 +127,7 @@ if __name__ == "__main__":
     a = "56789asdfghjkl"
     b = ""
 
-    myers = MyersRealTime(a, b, plot=True, max_depth=4, truncate_depth=2)
+    myers = MyersRealTime(a, b, plot=True)
     print(myers.update("056"))
     print(myers.update("90d2"))
     print(myers.update("7892"))

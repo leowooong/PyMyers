@@ -183,9 +183,9 @@ class Tree:
     def __init__(self, leave_size: int = 3):
         self.root: TreeNode = TreeNode(0, -1)  # virtual root
         self.end_node: TreeNode = self.root
-        self.farest_node: TreeNode = self.root
+        self.farest_node: TreeNode = self.root # farest means the node with the largest (x + y)
 
-        self._leaves: List[Optional[TreeNode]] = [None] * leave_size
+        self._leaves: List[TreeNode] = [None] * leave_size # nodes indexed by k
         self._leaves[1] = self.root  # set virtual root
         self.commit()
 
@@ -384,7 +384,7 @@ class MyersRealTime(MyersTree):
         return self.resolve_trace(trace)
 
     def truncate(self):
-        if self.current_d >= self.max_depth:  # self.break_d - self.current_d == -9:  # TODO: value?
+        if self.current_d >= self.max_depth:  # or self.break_d - self.current_d > 9:  # TODO: value?
             self.current_d = 0
             self.break_d = 0
             truncate_coord = self.tree.truncate(self.truncate_depth)
@@ -424,11 +424,12 @@ class MyersRealTime(MyersTree):
                     node = self.tree.leaves[k].diagonal()
                     self.tree.add(node)
                     self.debug.forward(node.p.coord, node.coord)
-                # saving status
+                # saving status when node.y first reaches m
+                # its shortest edit end_node in current update, commit the leaves and save the depth, next update will start from here
                 if not self.tree.commited and node.y == m:
                     self.tree.commit()
                     self.current_d = d
-            # end
+            # when farest_node.y exceeds m, end shortest edit search
             if self.tree.farest_node.y >= m:
                 self.tree.end_node = self.tree.farest_node
                 self.break_d = d
